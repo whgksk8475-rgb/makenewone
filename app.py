@@ -40,28 +40,62 @@ with col_grade:
 with st.sidebar:
     st.header("🛠️ 발명 지원 도구함")
     
-    # 기능 1: 아이디어 씨앗 뽑기
+    # 기능 1: 대규모 아이디어 씨앗 뽑기
     st.subheader("🌱 아이디어 씨앗 뽑기")
     if "글짓기" in mode:
-        history_items = ["세종대왕의 측우기", "장영실의 자격루", "조선시대 온돌", "거북선 철갑", "봉수대 통신망"]
-        future_tech = ["양자 시뮬레이터", "시공간 압축 엔진", "나노 입자 필터", "인공 중력장", "기후 복원 캡슐"]
-        mission_items = ["가뭄과 홍수 예방", "깨끗한 식수 공급", "미래 기후 위기 극복", "안전한 도시 건설", "신종 질병 퇴치"]
+        history_items = [
+            "세종대왕의 측우기", "장영실의 자격루", "조선시대 구들장(온돌)", "이순신의 거북선 철갑", "봉수대 광학 통신망",
+            "정약용의 거중기", "앙부일구(오목 해시계)", "일성정시의(낮과 밤 겸용 시계)", "풍기대(풍향 측정기)", "수표(하천 수위 측정석)",
+            "칠정산(한국형 역법 달력)", "신기전(연속 발사 화살)", "비격진천뢰(시한폭탄 원리)", "동의보감의 약초 분류 체계", "목화씨와 물레",
+            "대동여지도의 축척 공학", "한지의 통기성·보존 기술", "첨성대의 천문 관측대", "화성의 축성 과학", "신라의 석빙고(자연 냉동고)"
+        ]
+        future_tech = [
+            "양자 시뮬레이터", "시공간 압축 엔진", "스마트 나노 입자 필터", "인공 중력 제어장치", "기후 복원 대기 캡슐",
+            "광합성 모방 인공 엽록체", "DNA 데이터 저장 메모리", "초전도 무선 송전 시스템", "마이크로 로봇 혈관 수술기", "플라즈마 오염 분해기",
+            "중력파 탐지 조기경보기", "생체 친화형 인공 피부", "우주 쓰레기 수거 레이저", "메타물질 스텔스 멤브레인", "자가 치유 탄소 복합재",
+            "상온 핵융합 마이크로 배터리", "뉴로모픽 뇌파 통신 칩", "극저온 분자 순간 냉각기", "대기 탄소 포집 압축기", "수면 학습 시냅스 링크"
+        ]
+        mission_items = [
+            "극심한 가뭄과 대홍수 예방", "전 지구적 깨끗한 식수 공급", "이상 기후와 급격한 온난화 극복", "지진과 지반 침하에 안전한 도시", "신종 변이 바이러스 질병 퇴치",
+            "사막화 방지 및 녹지 복원", "심각한 대기 미세먼지 완전 정화", "식량 위기 대응 스마트 식량 재배", "해양 미세플라스틱 완벽 제거", "심해 생태계 파괴 복원",
+            "도시 열섬 현상과 폭염 완화", "방사능 및 중금속 토양 정화", "우주 쓰레기 충돌 재난 방어", "멸종위기 핵심 종 번식과 보호", "에너지 고갈에 대비한 청정 동력 확보",
+            "고령층 자립 지원 케어 환경", "자연재해 발생 시 골든타임 구조", "수도권 쓰레기 매립 포화 문제", "남극·북극 빙하 유실 지연", "소음 및 빛 공해 없는 주거 복지"
+        ]
         
         if st.button("🎲 영감 키워드 뽑기", use_container_width=True):
-            s1, s2, s3 = random.choice(history_items), random.choice(future_tech), random.choice(mission_items)
-            st.info(f"💡 **조합 힌트**\n* 배경: {s1}\n* 기술: {s2}\n* 목표: {s3}")
+            s1 = random.choice(history_items)
+            s2 = random.choice(future_tech)
+            s3 = random.choice(mission_items)
+            st.info(f"💡 **조합 힌트**\n* 🏛️ **역사 배경:** {s1}\n* 🔬 **미래 기술:** {s2}\n* 🎯 **해결 목표:** {s3}")
     else:
-        ai_types = ["변신형 청소 로봇", "식물 대화형 AI 드론", "해양 정화 거북이 로봇", "탄소 흡수 반려 AI", "미세플라스틱 분해 젤리"]
-        env_issues = ["태평양 플라스틱 쓰레기섬", "사막화와 가뭄", "바다 산호초 백화현상", "도심 열섬 현상", "음식물 쓰레기 배출"]
-        actions = ["자원 업사이클링", "멸종위기 동물 구출", "스마트 숲 가꾸기", "친환경 청정 에너지 생성", "제로 웨이스트 마을 만들기"]
+        ai_types = [
+            "변신형 육해공 청소 로봇", "식물 신경망 교감형 AI 드론", "해양 부유물 수거 거북이 로봇", "대기 탄소 흡수형 반려 AI", "미세플라스틱 생분해 젤리봇",
+            "토양 영양 복원 지렁이 바이오봇", "꿀벌 행동 유도 인공 꽃가루 드론", "산불 감시 및 소화 캡슐 에이전트", "사막 수분 응결 딱정벌레 로봇", "녹조·적조 포식형 인공 플랑크톤",
+            "빙하 냉각 순환 잠수정 AI", "야생동물 로드킬 방지 초음파 봇", "도시 빌딩 숲 수직 정원 관리봇", "의류 직물 업사이클링 재단 AI", "음식물 쓰레기 즉각 퇴비화 봇",
+            "태양광 자동 집광 풍선형 AI", "비점오염원 빗물 정화 두더지봇", "해파리 확산 제어 소나 로봇", "폐자원 성분 분석 분리수거 로봇", "산호초 백화 치유 나노 분사기"
+        ]
+        env_issues = [
+            "태평양 거대 플라스틱 쓰레기 지대", "급격한 사막화와 토양 황폐화", "바다 수온 상승과 산호초 백화현상", "도심 열섬 현상과 아스팔트 폭염", "가정·상업시설 음식물 쓰레기 범람",
+            "의류 폐기물 산과 패스트패션 공해", "공장 폐수와 화학 오염물질 유출", "무분별한 벌목으로 인한 아마존 산림 파괴", "화석 연료 매연과 미세먼지 스모그", "극지방 빙하 붕괴와 해수면 상승",
+            "도심 속 야생동물 서식지 단절", "무분별한 야간 조명으로 인한 빛 공해", "농경지 화학비료 남용에 따른 지력 저하", "해양 기름 유출 사고 잔류 오염", "전자제품 폐기물(E-waste) 방치",
+            "과도한 지하수 채취로 인한 지반 침하", "소음 공해와 철새 이동 경로 교란", "외래 유해 생물종 급증과 고유종 위협", "하천 녹조 현상과 물고기 떼죽음", "대형 산불로 인한 대기 탄소 폭증"
+        ]
+        actions = [
+            "버려진 자원 100% 업사이클링", "고립된 멸종위기 야생동물 구출", "황폐화된 도심 콘크리트 숲 복원", "지속 가능한 친환경 청정 에너지 생성", "완전 무공해 제로 웨이스트 마을 건설",
+            "초미세먼지 포집 후 자원 블록 변환", "바닷물 담수화로 깨끗한 생명수 공급", "화재 잔해 토양에 급속 산림 발아 유도", "침식된 해안선 복구 및 방파 숲 조성", "도심 옥상 생태 비오톱 연결망 구축",
+            "강 하구 자정능력 복원 수생식물 육성", "폐플라스틱을 활용한 생태 블록 건축", "야간 생태계 보호를 위한 친환경 조명 전환", "생태통로 개척 및 서식지 안전 연결", "오염된 하천 바닥 퇴적물 자연 정화",
+            "태양열 흡수 저감 도로 코팅막 형성", "산업 단지 유독가스 무해화 변환", "빗물 저장 및 지하수 수위 복원 순환", "산호 유충 착상 유도 암초 재건", "친환경 생분해 포장재 보급 시스템 구축"
+        ]
         
         if st.button("🎲 영감 키워드 뽑기", use_container_width=True):
-            a1, a2, a3 = random.choice(ai_types), random.choice(env_issues), random.choice(actions)
-            st.info(f"💡 **조합 힌트**\n* AI 파트너: {a1}\n* 해결할 문제: {a2}\n* 모험 미션: {a3}")
+            a1 = random.choice(ai_types)
+            a2 = random.choice(env_issues)
+            a3 = random.choice(actions)
+            st.info(f"💡 **조합 힌트**\n* 🤖 **AI 파트너:** {a1}\n* ⚠️ **해결할 문제:** {a2}\n* 🚀 **모험 미션:** {a3}")
 
     st.divider()
 
-    # 기능 2: 8컷 만화 양식지 (만화 모드 전용)
+    # 기능 2: 8컷 만화 콘티 양식지
     if "만화" in mode:
         st.subheader("📄 만화 콘티 양식지")
         svg_template = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1130" width="100%" height="100%">
@@ -95,7 +129,7 @@ with st.sidebar:
         st.caption("💡 내려받은 파일을 웹 브라우저로 열어 바로 인쇄(Ctrl+P)할 수 있어요!")
         st.divider()
 
-    # 기능 3: 글자 수 검사기 (글짓기 모드 전용)
+    # 기능 3: 글자 수 검사기
     if "글짓기" in mode:
         st.subheader("📏 글자 수 진단기")
         sample_text = st.text_area("작성 중인 글을 넣어보세요", height=120, placeholder="여기에 작성한 글을 붙여넣으면 공모전 기준(1,500자~2,000자)을 검사해 줍니다.")
@@ -115,7 +149,7 @@ with st.sidebar:
         st.checkbox("발명품 이름과 작동 원리가 적혀있나요?")
         st.checkbox("과거 또는 미래 위기를 극복하는 내용인가요?")
 
-# 4. 시스템 프롬프트 가드레일 (문장 수 제한 해제, 온전한 코칭 유도)
+# 4. 시스템 프롬프트 가드레일
 system_instruction = f"""
 당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전' 발명 코치입니다.
 대상: {grade}, 분야: {mode}
@@ -194,12 +228,11 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 8. 사용자 입력 및 완성형 응답 생성 (토큰 한도 2500 확장으로 잘림 원천 방지)
+# 8. 사용자 입력 및 단계별 생각 애니메이션 응답
 if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 적어보세요!"):
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # 최근 6개 대화만 문맥으로 전달
     recent_messages = st.session_state.messages[-6:]
     api_contents = []
     for m in recent_messages:
@@ -207,7 +240,10 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
         api_contents.append(types.Content(role=role, parts=[types.Part.from_text(text=m["content"])]))
 
     with st.chat_message("assistant"):
-        with st.spinner("생각을 정리하고 있어요..."):
+        # 생각하는 중 애니메이션 컨테이너
+        with st.status("🤔 발명 아이디어를 분석하고 있어요...", expanded=True) as status:
+            st.write("🔍 학생의 아이디어와 과학 원리를 연결하는 중...")
+            
             full_response = ""
             max_retries = 3
             for attempt in range(max_retries):
@@ -221,6 +257,7 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                             max_output_tokens=2500,
                         )
                     )
+                    st.write("💡 생각을 넓혀줄 질문과 피드백을 다듬는 중...")
                     full_response = response.text
                     break
                 except APIError as e:
@@ -237,5 +274,7 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                     full_response = f"오류가 발생했습니다: {e}"
                     break
 
-            st.markdown(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            status.update(label="✨ 답변이 준비되었습니다!", state="complete", expanded=False)
+
+        st.markdown(full_response)
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
