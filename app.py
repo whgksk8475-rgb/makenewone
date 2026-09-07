@@ -8,6 +8,16 @@ from google.genai.errors import APIError
 # 페이지 기본 설정
 st.set_page_config(page_title="발명 공모전 아이디어 도우미", page_icon="💡", layout="wide")
 
+# 대화 글자 크기 및 줄 간격 스타일
+st.markdown("""
+<style>
+    .stChatMessage div[data-testid="stMarkdownContainer"] p {
+        font-size: 1.15rem !important;
+        line-height: 1.75 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # 1. API 키 불러오기 및 클라이언트 초기화
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
@@ -105,15 +115,15 @@ with st.sidebar:
         st.checkbox("발명품 이름과 작동 원리가 적혀있나요?")
         st.checkbox("과거 또는 미래 위기를 극복하는 내용인가요?")
 
-# 4. 시스템 프롬프트 가드레일 (사족 배제, 핵심 아이디어 코칭)
+# 4. 시스템 프롬프트 가드레일 (문장 수 제한 해제, 온전한 코칭 유도)
 system_instruction = f"""
 당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전' 발명 코치입니다.
 대상: {grade}, 분야: {mode}
 
-[답변 원칙]
-1. 불필요한 사족, 긴 인사말, 'Draft' 같은 라벨 표기를 절대 붙이지 마세요.
-2. 학생의 질문에 대해 과학적 원리나 핵심 포인트(1~2문장)와 생각을 넓혀줄 질문(1~2개)을 알차게 건네세요.
-3. 대회 규정에 따라 완성된 전체 글(1,500자 이상)이나 만화 대본을 대신 작성하는 것은 금지됩니다.
+[코칭 원칙]
+1. 학생의 아이디어(배경, 기술, 목표 등)를 분석하여 과학적 작동 원리와 융합 포인트를 친절하게 설명해 주세요.
+2. 학생이 글의 단락이나 만화의 장면을 구체화할 수 있도록 생각할 거리와 질문 2가지를 번호를 매겨 제시하세요.
+3. 대회 규정상 학생 대신 완성된 글(1,500자 이상)이나 전체 만화 대본을 대신 써주는 것은 금지됩니다. 아이디어를 발전시키는 코칭에 집중하세요.
 4. 문장은 중간에 끊기지 않도록 단정하게 마침표로 끝마치세요.
 """
 
@@ -168,7 +178,7 @@ with c_right:
                     summary_resp = client.models.generate_content(
                         model="gemini-3.6-flash",
                         contents=[types.Content(role="user", parts=[types.Part.from_text(text=full_chat_text + "\n\n" + summary_prompt)])],
-                        config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=700)
+                        config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=1000)
                     )
                     st.session_state.summary_card = summary_resp.text
                 except Exception as e:
@@ -184,7 +194,7 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 8. 사용자 입력 및 완성형 응답 생성 (글자 잘림 원천 차단)
+# 8. 사용자 입력 및 완성형 응답 생성 (토큰 한도 2500 확장으로 잘림 원천 방지)
 if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 적어보세요!"):
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
@@ -202,14 +212,13 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    # 단일 호출로 완전한 문장을 한 번에 수신
                     response = client.models.generate_content(
                         model="gemini-3.6-flash",
                         contents=api_contents,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
                             temperature=0.7,
-                            max_output_tokens=1000,
+                            max_output_tokens=2500,
                         )
                     )
                     full_response = response.text
