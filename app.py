@@ -33,19 +33,19 @@ system_instruction = f"""
 
 [대회 규정 필수 준수]
 - 본 대회는 AI가 생성한 완성 작품의 출품을 엄격히 금지합니다.
-- 절대로 학생 대신 1,500~2,000자 분량의 완성된 글을 대신 써주거나 만화 완성형 대본/콘티 전체를 대신 작성하지 마세요.
-- 질문(소크라테스식 발문), 과학적 호기심 자극, 아이디어 구체화 유도, 개요 구성 힌트만 제공합니다.
+- 절대로 학생 대신 1,500~2,000자 분량의 완성된 글을 대신 써주거나 만화 대본/콘티 전체를 완성형으로 출력하지 마세요.
+- 오직 생각할 거리를 던져주는 친절한 질문(소크라테스식 발문), 과학적 호기심 자극, 아이디어 구체화 유도 가이드만 제공해야 합니다.
 
 [분야별 코칭 안내]
 1. 글짓기 (50년의 기록, 50년의 약속 '타임머신 발명보고서'):
-   - 발명 동기, 기발한 발명품 명칭, 작동 원리(과학적 상상력)를 묻고 이끌어내세요.
-   - 과거 역사 속 기술적 한계 극복이나 50년 뒤 미래 위기 해결 방안을 유도하세요.
+   - 발명 동기, 새로운 발명품 명칭, 작동 원리(과학적 상상력)를 묻고 이끌어내세요.
+   - 과거 역사 속 기술적 한계 극복이나 50년 뒤 미래 위기 해결 방안을 스스로 상상하도록 유도하세요.
 2. 만화 (AI 파트너와 함께하는 '지구 복구 프로젝트'):
    - 나만의 AI 파트너 이름 및 특수 기능, 환경 복구 발명품의 과학 원리, 8컷 이내 모험 구성을 단계별로 질문하세요.
 
-[대화 스타일]
-- 초·중학생 눈높이에 맞는 칭찬과 격려를 건네세요.
-- 한 번의 답변에 1~2개의 핵심 질문만 간결하게 건네어 학생이 직접 생각하고 답하게 하세요.
+[대화 톤앤매너 및 답변 길이 원칙]
+- 초·중학생 눈높이에 맞게 칭찬과 격려를 건네세요.
+- 길게 설명하지 말고, 3~4문장 이내로 핵심 격려와 1~2개의 명확한 생각거리 질문만 간결하게 건네세요.
 """
 
 # 4. 세션 상태 초기화 (분야 변경 시 대화 리셋)
@@ -59,24 +59,24 @@ if "current_mode" not in st.session_state or st.session_state.current_mode != mo
         welcome_msg = f"안녕! {grade} 친구 반가워요! 🌍\n\n지구를 지키는 'AI 파트너' 만화 콘티를 함께 짜볼까요? 우리 지구를 아프게 만드는 여러 환경 문제(쓰레기, 기후위기, 바다 오염 등) 중 어떤 문제를 가장 먼저 해결해 주고 싶나요?"
     st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
 
-# 5. 이전 대화 렌더링
+# 5. 이전 대화 화면 출력
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 6. 사용자 입력 및 실시간 스트리밍 호출
+# 6. 사용자 입력 및 최적화 스트리밍 호출
 if user_input := st.chat_input("선생님께 답변이나 아이디어를 적어보세요!"):
-    # 사용자 입력 화면 출력 및 세션 저장
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # Gemini 형식으로 대화 기록 구성
+    # [비용 절감 1] 전체 대화 대신 최근 6개 메시지만 문맥으로 전달해 입력 토큰 급증 차단
+    recent_messages = st.session_state.messages[-6:]
+
     api_contents = []
-    for m in st.session_state.messages:
+    for m in recent_messages:
         role = "user" if m["role"] == "user" else "model"
         api_contents.append(types.Content(role=role, parts=[types.Part.from_text(text=m["content"])]))
 
-    # 어시스턴트 실시간 스트리밍 출력
     with st.chat_message("assistant"):
         def response_generator():
             max_retries = 3
@@ -88,6 +88,8 @@ if user_input := st.chat_input("선생님께 답변이나 아이디어를 적어
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
                             temperature=0.7,
+                            # [비용 절감 2] 출력 토큰 제한으로 불필요한 장문 생성 방지
+                            max_output_tokens=350,
                         )
                     )
                     for chunk in response_stream:
@@ -95,7 +97,10 @@ if user_input := st.chat_input("선생님께 답변이나 아이디어를 적어
                             yield chunk.text
                     return
                 except APIError as e:
-                    if e.code == 503 and attempt < max_retries - 1:
+                    if e.code == 429:
+                        yield "⏳ 지금 많은 친구들이 동시에 질문하고 있어요! 약 20~30초 뒤에 다시 입력해 주세요."
+                        return
+                    elif e.code == 503 and attempt < max_retries - 1:
                         time.sleep(2)
                         continue
                     else:
