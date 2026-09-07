@@ -105,17 +105,16 @@ with st.sidebar:
         st.checkbox("발명품 이름과 작동 원리가 적혀있나요?")
         st.checkbox("과거 또는 미래 위기를 극복하는 내용인가요?")
 
-# 4. 시스템 프롬프트 가드레일 (핵심 전달 + 완벽한 마무리)
+# 4. 시스템 프롬프트 가드레일 (사족 없이 핵심 코칭에 집중)
 system_instruction = f"""
 당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전' 발명 코치입니다.
 대상: {grade}, 분야: {mode}
 
-[답변 작성 규칙]
-1. 인사말이나 'Draft' 같은 불필요한 단어를 절대 붙이지 마세요.
-2. 학생의 아이디어에서 돋보이는 과학 원리/발명 포인트를 2문장 내외로 명확히 설명하세요.
-3. 작품의 줄거리나 장면을 구체화할 수 있는 생각 질문 1~2개를 제시하세요.
-4. 완성된 전체 글이나 만화 대본을 대신 써주는 것은 금지됩니다.
-5. 반드시 마침표로 문장을 깔끔하게 끝마치세요.
+[답변 원칙]
+1. 사족, 긴 서론, 교훈적 인사말을 일절 하지 마세요.
+2. 학생의 질문이나 아이디어에 대해 과학적 원리 1문장과 생각을 넓힐 질문 1~2개로 간결하게 핵심만 전달하세요 (총 3문장 이내).
+3. 대회 규정상 학생 대신 본문(1,500자 이상)이나 전체 만화 대본을 대신 써주는 행위는 금지됩니다.
+4. 문장은 마침표로 단정하게 끝마치세요.
 """
 
 # 5. 대화 세션 초기화
@@ -124,7 +123,7 @@ if "current_mode" not in st.session_state or st.session_state.current_mode != mo
     st.session_state.messages = []
     
     if "글짓기" in mode:
-        welcome_msg = f"반가워요! '타임머신 발명보고서'를 쓰기 위해 과거 우리 과학 역사로 갈지, 미래 50년 뒤로 갈지 정해볼까요?"
+        welcome_msg = f"반가워요! '타임머신 발명보고서'를 쓰기 위해 과거 과학 역사로 갈지, 미래 50년 뒤로 갈지 생각을 들려주세요."
     else:
         welcome_msg = f"반가워요! '지구 복구 프로젝트' 만화에서 어떤 환경 문제를 가장 먼저 해결해보고 싶나요?"
     st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
@@ -155,8 +154,8 @@ with c_right:
         else:
             with st.spinner("아이디어를 표로 요약 정리하고 있어요..."):
                 summary_prompt = f"""
-                다음 대화를 바탕으로 학생이 작품을 제작할 수 있는 '발명 기획 카드'를 표로 정리하세요. 
-                본문은 대신 쓰지 말고 핵심 개요만 마크다운 표로 요약하세요.
+                다음 대화를 바탕으로 학생이 작품을 직접 제작할 수 있도록 공모전 심사 기준에 맞춘 '발명 기획 카드'를 표로 정리하세요. 
+                본문은 절대 대신 쓰지 말고 핵심 개요만 마크다운 표로 요약하세요.
                 
                 분야: {mode}
                 - 발명품(또는 AI 파트너) 명칭:
@@ -169,11 +168,7 @@ with c_right:
                     summary_resp = client.models.generate_content(
                         model="gemini-3.6-flash",
                         contents=[types.Content(role="user", parts=[types.Part.from_text(text=full_chat_text + "\n\n" + summary_prompt)])],
-                        config=types.GenerateContentConfig(
-                            temperature=0.2,
-                            max_output_tokens=1000,
-                            thinking_config=types.ThinkingConfig(thinking_budget=0)
-                        )
+                        config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=700)
                     )
                     st.session_state.summary_card = summary_resp.text
                 except Exception as e:
@@ -189,12 +184,11 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 8. 사용자 입력 및 스트리밍 응답 (잘림 원천 차단: Thinking 버짓 해제 + 넉넉한 응답 버퍼)
+# 8. 사용자 입력 및 스트리밍 응답 (400 에러 해결: 표준 파라미터 적용)
 if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 적어보세요!"):
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # 최근 6개 대화만 문맥으로 압축
     recent_messages = st.session_state.messages[-6:]
     api_contents = []
     for m in recent_messages:
@@ -206,15 +200,13 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    # thinking_budget=0 설정으로 생각 토큰 소모를 없애 답변이 중간에 잘리지 않음
                     response_stream = client.models.generate_content_stream(
                         model="gemini-3.6-flash",
                         contents=api_contents,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
                             temperature=0.6,
-                            max_output_tokens=1000,
-                            thinking_config=types.ThinkingConfig(thinking_budget=0)
+                            max_output_tokens=700,
                         )
                     )
                     for chunk in response_stream:
