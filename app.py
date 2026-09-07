@@ -8,21 +8,13 @@ from google.genai.errors import APIError
 # 페이지 기본 설정
 st.set_page_config(page_title="발명 공모전 아이디어 도우미", page_icon="💡", layout="wide")
 
-# 1. API 키 및 GCP 프로젝트 ID 불러오기 (300달러 크레딧 연동)
+# 1. API 키 불러오기 및 클라이언트 초기화 (AI Studio 방식)
 api_key = st.secrets.get("GEMINI_API_KEY")
-project_id = st.secrets.get("GCP_PROJECT_ID")
-
-if not api_key or not project_id:
-    st.error("Streamlit Secrets에 GEMINI_API_KEY와 GCP_PROJECT_ID가 필요합니다.")
+if not api_key:
+    st.error("Streamlit Secrets에 GEMINI_API_KEY를 등록해 주세요.")
     st.stop()
 
-# Vertex AI 모드로 클라이언트 초기화 -> GCP 300달러 크레딧에서 차감
-client = genai.Client(
-    api_key=api_key,
-    vertexai=True,
-    project=project_id,
-    location="us-central1"
-)
+client = genai.Client(api_key=api_key)
 
 # 2. 상단 헤더 및 모드 선택
 st.title("💡 발명 공모전 아이디어 도우미")
@@ -34,7 +26,7 @@ with col_mode:
 with col_grade:
     grade = st.selectbox("학년을 선택하세요", ["초등학생", "중학생"])
 
-# 3. 사이드바: 창작 지원 도구함
+# 3. 사이드바: 유용한 창작 도구 모음
 with st.sidebar:
     st.header("🛠️ 발명 지원 도구함")
     
@@ -155,7 +147,7 @@ with c_left:
         )
 
 with c_right:
-    # 기획서/콘티 자동 정리 카드 버튼
+    # 기능 4: 기획서/콘티 자동 정리 카드 버튼
     if st.button("📊 지금까지 나눈 아이디어 기획서 카드로 정리하기", use_container_width=True):
         if len(st.session_state.messages) < 4:
             st.warning("아이디어를 조금 더 나눈 뒤에 정리 버튼을 눌러주세요! (최소 2~3회 대화 필요)")
@@ -199,7 +191,7 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # 최근 6개 메시지만 문맥 전달
+    # 최근 6개 메시지만 문맥 전달 (토큰 비용 절감)
     recent_messages = st.session_state.messages[-6:]
     api_contents = []
     for m in recent_messages:
