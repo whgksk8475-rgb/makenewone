@@ -8,6 +8,26 @@ from google.genai.errors import APIError
 # 페이지 기본 설정
 st.set_page_config(page_title="발명 공모전 아이디어 도우미", page_icon="💡", layout="wide")
 
+# 대화 글자 크기 및 줄 간격 확대 스타일
+st.markdown("""
+<style>
+    /* 채팅 메시지 본문 글자 크기 및 줄간격 확대 */
+    .stChatMessage div[data-testid="stMarkdownContainer"] p {
+        font-size: 1.25rem !important;
+        line-height: 1.8 !important;
+        font-weight: 500;
+    }
+    /* 채팅 입력창 글자 크기 확대 */
+    .stChatInput textarea {
+        font-size: 1.15rem !important;
+    }
+    /* 상단 안내 문구 시인성 개선 */
+    div[data-testid="stCaptionContainer"] p {
+        font-size: 1.05rem !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # 1. API 키 불러오기 및 클라이언트 초기화
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
@@ -147,7 +167,7 @@ with c_left:
         )
 
 with c_right:
-    # 기능 4: 기획서 자동 요약 카드 버튼
+    # 기획서 자동 요약 카드 버튼
     if st.button("📊 지금까지 나눈 아이디어 기획서 카드로 정리하기", use_container_width=True):
         if len(st.session_state.messages) < 4:
             st.warning("아이디어를 조금 더 나눈 뒤에 정리 버튼을 눌러주세요! (최소 2~3회 대화 필요)")
@@ -221,7 +241,7 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                         full_response += chunk.text
                         message_placeholder.markdown(full_response + "▌")
                 
-                # 완성된 문장 최종 렌더링
+                # 완성된 문장 최종 표시
                 message_placeholder.markdown(full_response)
                 break
 
@@ -242,5 +262,5 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                 message_placeholder.markdown(full_response)
                 break
 
-        # 완성된 문장 세션 저장
+        # 완성된 응답 세션 저장
         st.session_state.messages.append({"role": "assistant", "content": full_response})
