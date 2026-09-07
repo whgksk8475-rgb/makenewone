@@ -105,16 +105,16 @@ with st.sidebar:
         st.checkbox("발명품 이름과 작동 원리가 적혀있나요?")
         st.checkbox("과거 또는 미래 위기를 극복하는 내용인가요?")
 
-# 4. 시스템 프롬프트 가드레일 (사족 없이 핵심 코칭에 집중)
+# 4. 시스템 프롬프트 가드레일 (사족 배제, 핵심 아이디어 코칭)
 system_instruction = f"""
 당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전' 발명 코치입니다.
 대상: {grade}, 분야: {mode}
 
 [답변 원칙]
-1. 사족, 긴 서론, 교훈적 인사말을 일절 하지 마세요.
-2. 학생의 질문이나 아이디어에 대해 과학적 원리 1문장과 생각을 넓힐 질문 1~2개로 간결하게 핵심만 전달하세요 (총 3문장 이내).
-3. 대회 규정상 학생 대신 본문(1,500자 이상)이나 전체 만화 대본을 대신 써주는 행위는 금지됩니다.
-4. 문장은 마침표로 단정하게 끝마치세요.
+1. 불필요한 사족, 긴 인사말, 'Draft' 같은 라벨 표기를 절대 붙이지 마세요.
+2. 학생의 질문에 대해 과학적 원리나 핵심 포인트(1~2문장)와 생각을 넓혀줄 질문(1~2개)을 알차게 건네세요.
+3. 대회 규정에 따라 완성된 전체 글(1,500자 이상)이나 만화 대본을 대신 작성하는 것은 금지됩니다.
+4. 문장은 중간에 끊기지 않도록 단정하게 마침표로 끝마치세요.
 """
 
 # 5. 대화 세션 초기화
@@ -123,7 +123,7 @@ if "current_mode" not in st.session_state or st.session_state.current_mode != mo
     st.session_state.messages = []
     
     if "글짓기" in mode:
-        welcome_msg = f"반가워요! '타임머신 발명보고서'를 쓰기 위해 과거 과학 역사로 갈지, 미래 50년 뒤로 갈지 생각을 들려주세요."
+        welcome_msg = f"반가워요! '타임머신 발명보고서' 작성을 위해 과거 우리 과학 역사로 갈지, 미래 50년 뒤로 갈지 생각을 들려주세요."
     else:
         welcome_msg = f"반가워요! '지구 복구 프로젝트' 만화에서 어떤 환경 문제를 가장 먼저 해결해보고 싶나요?"
     st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
@@ -184,11 +184,12 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 8. 사용자 입력 및 스트리밍 응답 (400 에러 해결: 표준 파라미터 적용)
+# 8. 사용자 입력 및 완성형 응답 생성 (글자 잘림 원천 차단)
 if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 적어보세요!"):
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
+    # 최근 6개 대화만 문맥으로 전달
     recent_messages = st.session_state.messages[-6:]
     api_contents = []
     for m in recent_messages:
@@ -196,36 +197,36 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
         api_contents.append(types.Content(role=role, parts=[types.Part.from_text(text=m["content"])]))
 
     with st.chat_message("assistant"):
-        def generate_response():
+        with st.spinner("생각을 정리하고 있어요..."):
+            full_response = ""
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    response_stream = client.models.generate_content_stream(
+                    # 단일 호출로 완전한 문장을 한 번에 수신
+                    response = client.models.generate_content(
                         model="gemini-3.6-flash",
                         contents=api_contents,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
-                            temperature=0.6,
-                            max_output_tokens=700,
+                            temperature=0.7,
+                            max_output_tokens=1000,
                         )
                     )
-                    for chunk in response_stream:
-                        if chunk.text:
-                            yield chunk.text
-                    return
+                    full_response = response.text
+                    break
                 except APIError as e:
                     if e.code == 429:
-                        yield "⏳ 잠시 이용자가 많아요. 15초 뒤 다시 질문해 주세요."
-                        return
+                        full_response = "⏳ 잠시 이용자가 많아요. 15초 뒤 다시 질문해 주세요."
+                        break
                     elif e.code == 503 and attempt < max_retries - 1:
                         time.sleep(1.5)
                         continue
                     else:
-                        yield f"오류: {e}"
-                        return
+                        full_response = f"오류가 발생했습니다: {e}"
+                        break
                 except Exception as e:
-                    yield f"오류: {e}"
-                    return
+                    full_response = f"오류가 발생했습니다: {e}"
+                    break
 
-        full_response = st.write_stream(generate_response)
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+            st.markdown(full_response)
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
