@@ -168,7 +168,7 @@ with c_right:
                 
                 try:
                     summary_resp = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model="gemini-3.6-flash",
                         contents=[types.Content(role="user", parts=[types.Part.from_text(text=full_chat_text + "\n\n" + summary_prompt)])],
                         config=types.GenerateContentConfig(temperature=0.3, max_output_tokens=700)
                     )
@@ -186,20 +186,20 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 8. 사용자 입력 및 스트리밍 응답
+# 8. 사용자 입력 및 스트리밍 응답 (잘림 방지 및 안정화)
 if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 적어보세요!"):
-    # 1) 사용자 메시지 출력 및 저장
+    # 사용자 메시지 표시 및 저장
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # 2) 최근 6개 대화만 문맥으로 전달
+    # 최근 6개 대화만 문맥으로 전달
     recent_messages = st.session_state.messages[-6:]
     api_contents = []
     for m in recent_messages:
         role = "user" if m["role"] == "user" else "model"
         api_contents.append(types.Content(role=role, parts=[types.Part.from_text(text=m["content"])]))
 
-    # 3) 모델 답변 스트리밍 렌더링
+    # 모델 응답 생성
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
@@ -208,7 +208,7 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
         for attempt in range(max_retries):
             try:
                 response_stream = client.models.generate_content_stream(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.6-flash",
                     contents=api_contents,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
@@ -221,7 +221,7 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                         full_response += chunk.text
                         message_placeholder.markdown(full_response + "▌")
                 
-                # 완성된 문장 표시
+                # 완성된 문장 최종 렌더링
                 message_placeholder.markdown(full_response)
                 break
 
@@ -242,5 +242,5 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                 message_placeholder.markdown(full_response)
                 break
 
-        # 완성된 응답 세션에 저장
+        # 완성된 문장 세션 저장
         st.session_state.messages.append({"role": "assistant", "content": full_response})
