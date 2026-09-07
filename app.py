@@ -59,6 +59,26 @@ if "current_mode" not in st.session_state or st.session_state.current_mode != mo
         welcome_msg = f"안녕! {grade} 친구 반가워요! 🌍\n\n지구를 지키는 'AI 파트너' 만화 콘티를 함께 짜볼까요? 우리 지구를 아프게 만드는 여러 환경 문제(쓰레기, 기후위기, 바다 오염 등) 중 어떤 문제를 가장 먼저 해결해 주고 싶나요?"
     st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
 
+# [추가 기능] 대화 내용 복사 및 다운로드 도구
+chat_summary_lines = []
+for msg in st.session_state.messages:
+    sender = "선생님(AI)" if msg["role"] == "assistant" else "나(학생)"
+    chat_summary_lines.append(f"[{sender}]\n{msg['content']}\n")
+full_chat_text = "\n".join(chat_summary_lines)
+
+with st.expander("📋 지금까지 나눈 대화 복사 / 저장하기", expanded=False):
+    st.info("오른쪽 상단 복사 아이콘을 누르거나 아래 파일 저장 버튼을 눌러보세요!")
+    # 코드 블록 우측 상단의 기본 '복사' 버튼 활용
+    st.code(full_chat_text, language="markdown")
+    st.download_button(
+        label="💾 대화 내용 텍스트 파일(.txt)로 다운로드",
+        data=full_chat_text,
+        file_name="발명_아이디어_대화내용.txt",
+        mime="text/plain"
+    )
+
+st.divider()
+
 # 5. 이전 대화 화면 출력
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
@@ -69,7 +89,7 @@ if user_input := st.chat_input("선생님께 답변이나 아이디어를 적어
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # [비용 절감 1] 전체 대화 대신 최근 6개 메시지만 문맥으로 전달해 입력 토큰 급증 차단
+    # 전체 대화 대신 최근 6개 메시지만 문맥으로 전달 (비용 절감)
     recent_messages = st.session_state.messages[-6:]
 
     api_contents = []
@@ -88,7 +108,6 @@ if user_input := st.chat_input("선생님께 답변이나 아이디어를 적어
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
                             temperature=0.7,
-                            # [비용 절감 2] 출력 토큰 제한으로 불필요한 장문 생성 방지
                             max_output_tokens=350,
                         )
                     )
@@ -112,3 +131,4 @@ if user_input := st.chat_input("선생님께 답변이나 아이디어를 적어
 
         full_response = st.write_stream(response_generator)
         st.session_state.messages.append({"role": "assistant", "content": full_response})
+        st.rerun()  # 복사 영역 텍스트를 최신 대화 상태로 즉시 갱신
