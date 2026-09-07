@@ -8,16 +8,6 @@ from google.genai.errors import APIError
 # 페이지 기본 설정
 st.set_page_config(page_title="발명 공모전 아이디어 도우미", page_icon="💡", layout="wide")
 
-# 대화 글자 폰트 스타일 (가독성 유지)
-st.markdown("""
-<style>
-    .stChatMessage div[data-testid="stMarkdownContainer"] p {
-        font-size: 1.15rem !important;
-        line-height: 1.75 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # 1. API 키 불러오기 및 클라이언트 초기화
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
@@ -36,7 +26,7 @@ with col_mode:
 with col_grade:
     grade = st.selectbox("학년을 선택하세요", ["초등학생", "중학생"])
 
-# 3. 사이드바: 창작 도구함
+# 3. 사이드바: 창작 지원 도구함
 with st.sidebar:
     st.header("🛠️ 발명 지원 도구함")
     
@@ -115,19 +105,18 @@ with st.sidebar:
         st.checkbox("발명품 이름과 작동 원리가 적혀있나요?")
         st.checkbox("과거 또는 미래 위기를 극복하는 내용인가요?")
 
-# 4. 시스템 프롬프트 가드레일 (충분하고 친절한 분량으로 수정)
+# 4. 시스템 프롬프트 가드레일 (군더더기 배제 및 핵심 집중형)
 system_instruction = f"""
-당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전'을 지도하는 열정적이고 다정한 발명 코치 선생님입니다.
+당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전' 아이디어 코치입니다.
 대상: {grade}, 분야: {mode}
 
-[답변 작성 가이드라인]
-1. 분량: 너무 짧게 끝내지 말고, 학생이 영감을 충분히 얻을 수 있도록 단락을 나누어 친절하고 풍성하게 설명하세요 (공백 포함 400~600자 내외).
-2. 구성:
-   - 칭찬과 공감: 학생의 아이디어가 왜 참신하고 좋은지 구체적인 장점 짚어주기
-   - 과학적 원리 살 붙이기: 학생의 아이디어에 적용해볼 만한 흥미로운 과학 기술 원리를 알기 쉽게 설명하기
-   - 아이디어 확장 질문: 글이나 만화의 장면으로 발전시킬 수 있는 구체적인 생각 질문 2가지 던지기
-3. 필수 규칙:
-   - 대회 규정상 학생 대신 완성된 글(1,500~2,000자)이나 완성된 만화 대본을 통째로 대신 써주는 것은 엄격히 금지됩니다. 학생 스스로 상상해서 채울 수 있도록 방향과 디테일한 질문을 주는 코칭에 집중하세요.
+[답변 원칙 - 불필요한 사족 절대 금지]
+1. 인사말, 긴 감탄사, 불필요한 칭찬, 교훈적인 서론을 일절 쓰지 마세요.
+2. 답변은 반드시 아래 2단계 구조로 3문장 이내로만 간결하게 끝내세요:
+   - [핵심 피드백]: 학생 아이디어의 과학적 핵심 원리나 적용 포인트를 1문장으로 명확히 짚어주기
+   - [생각할 질문]: 글이나 만화 장면을 구체화할 수 있는 짧고 날카로운 질문 1~2개 던지기
+3. 학생 대신 완성된 본문(1,500자 이상)이나 대본을 써주는 것은 엄격히 금지됩니다.
+4. 문장이 중간에 잘리지 않도록 핵심만 말하고 즉시 마침표를 찍으세요.
 """
 
 # 5. 대화 세션 초기화
@@ -136,9 +125,9 @@ if "current_mode" not in st.session_state or st.session_state.current_mode != mo
     st.session_state.messages = []
     
     if "글짓기" in mode:
-        welcome_msg = f"안녕! {grade} 친구 반가워요! 🚀\n\n'타임머신 발명보고서'를 쓰기 위해 생각을 열어볼까요? 타임머신을 타고 과거 우리 과학 역사로 가보고 싶나요, 아니면 50년 뒤 미래 세상으로 가보고 싶나요?"
+        welcome_msg = f"반가워요! '타임머신 발명보고서'를 쓰기 위해 과거 우리 과학 역사로 갈지, 미래 50년 뒤로 갈지 정해볼까요?"
     else:
-        welcome_msg = f"안녕! {grade} 친구 반가워요! 🌍\n\n'지구 복구 프로젝트' 만화를 구상해 볼까요? 우리 지구를 아프게 만드는 여러 문제 중 어떤 환경 위기를 가장 먼저 해결해 주고 싶나요?"
+        welcome_msg = f"반가워요! '지구 복구 프로젝트' 만화에서 어떤 환경 문제를 가장 먼저 해결해보고 싶나요?"
     st.session_state.messages.append({"role": "assistant", "content": welcome_msg})
 
 # 6. 상단 도구: 대화 복사 및 기획서 카드 정리 버튼
@@ -167,23 +156,21 @@ with c_right:
         else:
             with st.spinner("아이디어를 표로 요약 정리하고 있어요..."):
                 summary_prompt = f"""
-                다음은 학생과 나눈 발명 아이디어 대화입니다. 
-                이 내용을 바탕으로 학생이 작품을 직접 창작할 수 있도록 공모전 심사 기준에 맞춘 '발명 기획 카드'를 마크다운 표로 깔끔하게 요약해 주세요.
-                절대 완성된 글이나 만화 본문을 대신 쓰지 말고, 키워드와 개요 중심으로만 정리하세요.
-
+                다음 대화를 바탕으로 학생이 작품을 제작할 수 있는 '발명 기획 카드'를 표로 정리하세요. 
+                본문은 대신 쓰지 말고 핵심 개요만 마크다운 표로 요약하세요.
+                
                 분야: {mode}
-                [정리 형식]
                 - 발명품(또는 AI 파트너) 명칭:
-                - 발명 동기(해결하려는 문제):
+                - 해결하려는 문제:
                 - 핵심 과학 원리:
-                - 뼈대 구성 가이드: (글짓기라면 4단락 구성 개요 / 만화라면 8컷 컷별 핵심 상황 요약)
+                - 뼈대 구성: (글짓기 4단락 개요 또는 만화 8컷 요약)
                 """
                 
                 try:
                     summary_resp = client.models.generate_content(
                         model="gemini-3.6-flash",
                         contents=[types.Content(role="user", parts=[types.Part.from_text(text=full_chat_text + "\n\n" + summary_prompt)])],
-                        config=types.GenerateContentConfig(temperature=0.3, max_output_tokens=1000)
+                        config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=700)
                     )
                     st.session_state.summary_card = summary_resp.text
                 except Exception as e:
@@ -199,12 +186,13 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 8. 사용자 입력 및 스트리밍 응답 (풍부한 분량 생성)
+# 8. 사용자 입력 및 스트리밍 응답 (초기 글자 수 제한 복구 및 UI 렌더링 안정화)
 if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 적어보세요!"):
+    # 사용자 메시지 즉시 렌더링 및 세션 저장
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # 최근 6개 대화만 문맥으로 전달
+    # 최근 6개 대화만 문맥으로 압축
     recent_messages = st.session_state.messages[-6:]
     api_contents = []
     for m in recent_messages:
@@ -212,45 +200,37 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
         api_contents.append(types.Content(role=role, parts=[types.Part.from_text(text=m["content"])]))
 
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-        max_retries = 3
-
-        for attempt in range(max_retries):
-            try:
-                response_stream = client.models.generate_content_stream(
-                    model="gemini-3.6-flash",
-                    contents=api_contents,
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_instruction,
-                        temperature=0.7,
-                        max_output_tokens=1200,  # 충분히 긴 호흡으로 설명할 수 있도록 확대
+        def generate_response():
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response_stream = client.models.generate_content_stream(
+                        model="gemini-3.6-flash",
+                        contents=api_contents,
+                        config=types.GenerateContentConfig(
+                            system_instruction=system_instruction,
+                            temperature=0.5,
+                            max_output_tokens=350,  # 요청하신 최초 글자 수 제한으로 복구
+                        )
                     )
-                )
-                for chunk in response_stream:
-                    if chunk.text:
-                        full_response += chunk.text
-                        message_placeholder.markdown(full_response + "▌")
-                
-                # 최종 완성 텍스트 출력
-                message_placeholder.markdown(full_response)
-                break
+                    for chunk in response_stream:
+                        if chunk.text:
+                            yield chunk.text
+                    return
+                except APIError as e:
+                    if e.code == 429:
+                        yield "⏳ 잠시 이용자가 많아요. 15초 뒤 다시 질문해 주세요."
+                        return
+                    elif e.code == 503 and attempt < max_retries - 1:
+                        time.sleep(1.5)
+                        continue
+                    else:
+                        yield f"오류: {e}"
+                        return
+                except Exception as e:
+                    yield f"오류: {e}"
+                    return
 
-            except APIError as e:
-                if e.code == 429:
-                    full_response = "⏳ 지금 많은 친구들이 질문하고 있어요! 약 20초 뒤에 다시 보내주세요."
-                    message_placeholder.markdown(full_response)
-                    break
-                elif e.code == 503 and attempt < max_retries - 1:
-                    time.sleep(2)
-                    continue
-                else:
-                    full_response = f"오류가 발생했습니다: {e}"
-                    message_placeholder.markdown(full_response)
-                    break
-            except Exception as e:
-                full_response = f"오류가 발생했습니다: {e}"
-                message_placeholder.markdown(full_response)
-                break
-
+        # 문장 잘림 없는 안전한 스트리밍 출력
+        full_response = st.write_stream(generate_response)
         st.session_state.messages.append({"role": "assistant", "content": full_response})
