@@ -8,22 +8,12 @@ from google.genai.errors import APIError
 # 페이지 기본 설정
 st.set_page_config(page_title="발명 공모전 아이디어 도우미", page_icon="💡", layout="wide")
 
-# 대화 글자 크기 및 줄 간격 확대 스타일
+# 대화 글자 폰트 스타일 (가독성 유지)
 st.markdown("""
 <style>
-    /* 채팅 메시지 본문 글자 크기 및 줄간격 확대 */
     .stChatMessage div[data-testid="stMarkdownContainer"] p {
-        font-size: 1.25rem !important;
-        line-height: 1.8 !important;
-        font-weight: 500;
-    }
-    /* 채팅 입력창 글자 크기 확대 */
-    .stChatInput textarea {
         font-size: 1.15rem !important;
-    }
-    /* 상단 안내 문구 시인성 개선 */
-    div[data-testid="stCaptionContainer"] p {
-        font-size: 1.05rem !important;
+        line-height: 1.75 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -125,15 +115,19 @@ with st.sidebar:
         st.checkbox("발명품 이름과 작동 원리가 적혀있나요?")
         st.checkbox("과거 또는 미래 위기를 극복하는 내용인가요?")
 
-# 4. 시스템 프롬프트 가드레일
+# 4. 시스템 프롬프트 가드레일 (충분하고 친절한 분량으로 수정)
 system_instruction = f"""
-당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전'을 돕는 다정하고 친절한 발명 코치 선생님입니다.
+당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전'을 지도하는 열정적이고 다정한 발명 코치 선생님입니다.
 대상: {grade}, 분야: {mode}
 
-[필수 대회 규칙]
-- AI 생성 완성품 출품 금지 규정이 있으므로, 학생 대신 완성된 글(1,500~2,000자)이나 완성된 만화 대본을 절대 작성해주지 마세요.
-- 생각할 거리를 던져주는 소크라테스식 질문(1~2개), 과학적 비유 설명, 아이디어 발전 피드백만 제공하세요.
-- 답변은 3~4문장 이내로 핵심만 간결하게 건네세요.
+[답변 작성 가이드라인]
+1. 분량: 너무 짧게 끝내지 말고, 학생이 영감을 충분히 얻을 수 있도록 단락을 나누어 친절하고 풍성하게 설명하세요 (공백 포함 400~600자 내외).
+2. 구성:
+   - 칭찬과 공감: 학생의 아이디어가 왜 참신하고 좋은지 구체적인 장점 짚어주기
+   - 과학적 원리 살 붙이기: 학생의 아이디어에 적용해볼 만한 흥미로운 과학 기술 원리를 알기 쉽게 설명하기
+   - 아이디어 확장 질문: 글이나 만화의 장면으로 발전시킬 수 있는 구체적인 생각 질문 2가지 던지기
+3. 필수 규칙:
+   - 대회 규정상 학생 대신 완성된 글(1,500~2,000자)이나 완성된 만화 대본을 통째로 대신 써주는 것은 엄격히 금지됩니다. 학생 스스로 상상해서 채울 수 있도록 방향과 디테일한 질문을 주는 코칭에 집중하세요.
 """
 
 # 5. 대화 세션 초기화
@@ -167,7 +161,6 @@ with c_left:
         )
 
 with c_right:
-    # 기획서 자동 요약 카드 버튼
     if st.button("📊 지금까지 나눈 아이디어 기획서 카드로 정리하기", use_container_width=True):
         if len(st.session_state.messages) < 4:
             st.warning("아이디어를 조금 더 나눈 뒤에 정리 버튼을 눌러주세요! (최소 2~3회 대화 필요)")
@@ -190,7 +183,7 @@ with c_right:
                     summary_resp = client.models.generate_content(
                         model="gemini-3.6-flash",
                         contents=[types.Content(role="user", parts=[types.Part.from_text(text=full_chat_text + "\n\n" + summary_prompt)])],
-                        config=types.GenerateContentConfig(temperature=0.3, max_output_tokens=700)
+                        config=types.GenerateContentConfig(temperature=0.3, max_output_tokens=1000)
                     )
                     st.session_state.summary_card = summary_resp.text
                 except Exception as e:
@@ -206,9 +199,8 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 8. 사용자 입력 및 스트리밍 응답 (잘림 방지 및 안정화)
+# 8. 사용자 입력 및 스트리밍 응답 (풍부한 분량 생성)
 if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 적어보세요!"):
-    # 사용자 메시지 표시 및 저장
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
@@ -219,7 +211,6 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
         role = "user" if m["role"] == "user" else "model"
         api_contents.append(types.Content(role=role, parts=[types.Part.from_text(text=m["content"])]))
 
-    # 모델 응답 생성
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
@@ -233,7 +224,7 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         temperature=0.7,
-                        max_output_tokens=800,
+                        max_output_tokens=1200,  # 충분히 긴 호흡으로 설명할 수 있도록 확대
                     )
                 )
                 for chunk in response_stream:
@@ -241,7 +232,7 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                         full_response += chunk.text
                         message_placeholder.markdown(full_response + "▌")
                 
-                # 완성된 문장 최종 표시
+                # 최종 완성 텍스트 출력
                 message_placeholder.markdown(full_response)
                 break
 
@@ -262,5 +253,4 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                 message_placeholder.markdown(full_response)
                 break
 
-        # 완성된 응답 세션 저장
         st.session_state.messages.append({"role": "assistant", "content": full_response})
