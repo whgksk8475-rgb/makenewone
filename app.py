@@ -81,7 +81,7 @@ if user_input := st.chat_input("선생님께 답변이나 아이디어를 적어
         with st.spinner("선생님이 생각 중이에요..."):
             try:
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.6-flash",
                     contents=api_contents,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
