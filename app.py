@@ -105,18 +105,17 @@ with st.sidebar:
         st.checkbox("발명품 이름과 작동 원리가 적혀있나요?")
         st.checkbox("과거 또는 미래 위기를 극복하는 내용인가요?")
 
-# 4. 시스템 프롬프트 가드레일 (군더더기 배제 및 핵심 집중형)
+# 4. 시스템 프롬프트 가드레일 (핵심 전달 + 완벽한 마무리)
 system_instruction = f"""
-당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전' 아이디어 코치입니다.
+당신은 대한민국 '제50회 전국 초·중학생 발명글짓기·만화 공모전' 발명 코치입니다.
 대상: {grade}, 분야: {mode}
 
-[답변 원칙 - 불필요한 사족 절대 금지]
-1. 인사말, 긴 감탄사, 불필요한 칭찬, 교훈적인 서론을 일절 쓰지 마세요.
-2. 답변은 반드시 아래 2단계 구조로 3문장 이내로만 간결하게 끝내세요:
-   - [핵심 피드백]: 학생 아이디어의 과학적 핵심 원리나 적용 포인트를 1문장으로 명확히 짚어주기
-   - [생각할 질문]: 글이나 만화 장면을 구체화할 수 있는 짧고 날카로운 질문 1~2개 던지기
-3. 학생 대신 완성된 본문(1,500자 이상)이나 대본을 써주는 것은 엄격히 금지됩니다.
-4. 문장이 중간에 잘리지 않도록 핵심만 말하고 즉시 마침표를 찍으세요.
+[답변 작성 규칙]
+1. 인사말이나 'Draft' 같은 불필요한 단어를 절대 붙이지 마세요.
+2. 학생의 아이디어에서 돋보이는 과학 원리/발명 포인트를 2문장 내외로 명확히 설명하세요.
+3. 작품의 줄거리나 장면을 구체화할 수 있는 생각 질문 1~2개를 제시하세요.
+4. 완성된 전체 글이나 만화 대본을 대신 써주는 것은 금지됩니다.
+5. 반드시 마침표로 문장을 깔끔하게 끝마치세요.
 """
 
 # 5. 대화 세션 초기화
@@ -170,7 +169,11 @@ with c_right:
                     summary_resp = client.models.generate_content(
                         model="gemini-3.6-flash",
                         contents=[types.Content(role="user", parts=[types.Part.from_text(text=full_chat_text + "\n\n" + summary_prompt)])],
-                        config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=700)
+                        config=types.GenerateContentConfig(
+                            temperature=0.2,
+                            max_output_tokens=1000,
+                            thinking_config=types.ThinkingConfig(thinking_budget=0)
+                        )
                     )
                     st.session_state.summary_card = summary_resp.text
                 except Exception as e:
@@ -186,9 +189,8 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 8. 사용자 입력 및 스트리밍 응답 (초기 글자 수 제한 복구 및 UI 렌더링 안정화)
+# 8. 사용자 입력 및 스트리밍 응답 (잘림 원천 차단: Thinking 버짓 해제 + 넉넉한 응답 버퍼)
 if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 적어보세요!"):
-    # 사용자 메시지 즉시 렌더링 및 세션 저장
     st.chat_message("user").write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
@@ -204,13 +206,15 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
             max_retries = 3
             for attempt in range(max_retries):
                 try:
+                    # thinking_budget=0 설정으로 생각 토큰 소모를 없애 답변이 중간에 잘리지 않음
                     response_stream = client.models.generate_content_stream(
                         model="gemini-3.6-flash",
                         contents=api_contents,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
-                            temperature=0.5,
-                            max_output_tokens=350,  # 요청하신 최초 글자 수 제한으로 복구
+                            temperature=0.6,
+                            max_output_tokens=1000,
+                            thinking_config=types.ThinkingConfig(thinking_budget=0)
                         )
                     )
                     for chunk in response_stream:
@@ -231,6 +235,5 @@ if user_input := st.chat_input("선생님께 답변이나 새로운 생각을 �
                     yield f"오류: {e}"
                     return
 
-        # 문장 잘림 없는 안전한 스트리밍 출력
         full_response = st.write_stream(generate_response)
         st.session_state.messages.append({"role": "assistant", "content": full_response})
