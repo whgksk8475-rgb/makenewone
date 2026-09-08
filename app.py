@@ -1,6 +1,8 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import time
 import random
+import json
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
@@ -198,7 +200,7 @@ with tab_student:
             welcome_msg = f"반가워요! '지구 복구 프로젝트' 만화에서 어떤 환경 문제를 가장 먼저 해결해보고 싶나요?"
         st.session_state.student_messages.append({"role": "assistant", "content": welcome_msg})
 
-    # 상단 대화 복사 및 기획서 카드 정리 버튼
+    # 상단 도구: 대화 복사 및 기획서 카드 정리 버튼
     c_left, c_right = st.columns([1, 1])
     with c_left:
         chat_summary_lines = []
@@ -249,7 +251,7 @@ with tab_student:
         st.markdown(st.session_state.summary_card)
         st.divider()
 
-    # 이전 채팅 내역 렌더링
+    # 이전 채팅 렌더링
     for msg in st.session_state.student_messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
@@ -304,7 +306,7 @@ with tab_student:
 
 
 # ==========================================
-# TAB 2: 교사용 발명 글쓰기 완성형 개선문 & 제목 추천 생성
+# TAB 2: 교사용 발명 글쓰기 완성형 개선문 생성
 # ==========================================
 with tab_teacher:
     st.title("🧑‍🏫 발명 글쓰기 완성형 개선문 생성 (교사용)")
@@ -397,11 +399,57 @@ with tab_teacher:
             essay_len = len(st.session_state.teacher_pure_essay)
             st.caption(f"📊 생성된 전체 글자 수: **{essay_len:,}자** (공백 포함)")
 
-            st.download_button(
-                label="💾 추천 제목 & 개선문 다운로드 (.txt)",
-                data=st.session_state.teacher_pure_essay,
-                file_name="타임머신_발명보고서_추천제목_및_수업예시.txt",
-                mime="text/plain",
-                use_container_width=True,
-                key="btn_download_pure_essay"
-            )
+            # 원클릭 클립보드 복사 버튼 컴포넌트
+            raw_text_json = json.dumps(st.session_state.teacher_pure_essay)
+            copy_html = f"""
+            <div style="margin-top: 10px; margin-bottom: 15px;">
+                <button id="copyBtn" onclick="copyToClipboard()" style="
+                    width: 100%;
+                    background: linear-gradient(90deg, #ff4b4b, #ff7675);
+                    color: white;
+                    border: none;
+                    padding: 12px 20px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+                    transition: all 0.2s ease;
+                ">
+                    📋 개선문 전체 복사하기 (단축키: Ctrl + V / Cmd + V 로 붙여넣기)
+                </button>
+                <p id="copyStatus" style="
+                    display: none;
+                    color: #00b894;
+                    font-weight: bold;
+                    font-size: 14px;
+                    margin-top: 8px;
+                    text-align: center;
+                ">
+                    ✅ 클립보드에 복사되었습니다! 원하는 문서에 [Ctrl + V] (Mac: Cmd + V) 로 붙여넣으세요.
+                </p>
+            </div>
+            <script>
+                function copyToClipboard() {{
+                    const text = {raw_text_json};
+                    navigator.clipboard.writeText(text).then(function() {{
+                        const btn = document.getElementById('copyBtn');
+                        const status = document.getElementById('copyStatus');
+                        btn.style.background = '#00b894';
+                        btn.innerText = '✅ 복사 완료!';
+                        status.style.display = 'block';
+                        setTimeout(function() {{
+                            btn.style.background = 'linear-gradient(90deg, #ff4b4b, #ff7675)';
+                            btn.innerText = '📋 개선문 전체 복사하기 (단축키: Ctrl + V / Cmd + V 로 붙여넣기)';
+                        }}, 4000);
+                    }}).catch(function(err) {{
+                        alert('복사 실패: ' + err);
+                    }});
+                }}
+            </script>
+            """
+            components.html(copy_html, height=85)
