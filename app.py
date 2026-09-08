@@ -8,7 +8,33 @@ from google.genai.errors import APIError
 # 페이지 기본 설정
 st.set_page_config(page_title="발명 공모전 도우미 & 교사용 첨삭실", page_icon="💡", layout="wide")
 
-# 대화 글자 크기 및 줄 간격 스타일
+# ==========================================
+# 0. 사이트 접속 암호 인증 게이트 (dj6363)
+# ==========================================
+ACCESS_PASSWORD = "dj6363"
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    _, center_col, _ = st.columns([1, 2, 1])
+    with center_col:
+        st.title("🔒 접속 승인 필요")
+        st.caption("본 도구는 승인된 사용자만 이용할 수 있는 비공개 교육용 도구입니다.")
+        
+        input_pw = st.text_input("접속 암호를 입력해 주세요", type="password", placeholder="암호 입력")
+        if st.button("입장하기", use_container_width=True, type="primary"):
+            if input_pw == ACCESS_PASSWORD:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("암호가 올바르지 않습니다. 다시 확인해 주세요.")
+    st.stop()  # 암호가 일치하지 않으면 아래 전체 앱 실행을 차단
+
+# ==========================================
+# 스타일 설정
+# ==========================================
 st.markdown("""
 <style>
     .stChatMessage div[data-testid="stMarkdownContainer"] p {
@@ -172,7 +198,7 @@ with tab_student:
             welcome_msg = f"반가워요! '지구 복구 프로젝트' 만화에서 어떤 환경 문제를 가장 먼저 해결해보고 싶나요?"
         st.session_state.student_messages.append({"role": "assistant", "content": welcome_msg})
 
-    # 상단 대화 복사 및 기획서 카드 정리 버튼
+    # 상단 도구: 대화 복사 및 기획서 카드 정리 버튼
     c_left, c_right = st.columns([1, 1])
     with c_left:
         chat_summary_lines = []
@@ -223,7 +249,7 @@ with tab_student:
         st.markdown(st.session_state.summary_card)
         st.divider()
 
-    # 이전 채팅 렌더링
+    # 이전 채팅 내역 렌더링
     for msg in st.session_state.student_messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
@@ -278,7 +304,7 @@ with tab_student:
 
 
 # ==========================================
-# TAB 2: 교사용 발명 글쓰기 완성형 개선문 생성 (순수 개선문 본문 전용)
+# TAB 2: 교사용 발명 글쓰기 완성형 개선문 생성
 # ==========================================
 with tab_teacher:
     st.title("🧑‍🏫 발명 글쓰기 완성형 개선문 생성 (교사용)")
@@ -358,7 +384,6 @@ with tab_teacher:
         if "teacher_pure_essay" in st.session_state and st.session_state.teacher_pure_essay:
             result_container.markdown(st.session_state.teacher_pure_essay)
             
-            # 생성된 개선문의 실제 글자 수 실시간 집계
             essay_len = len(st.session_state.teacher_pure_essay)
             st.caption(f"📊 생성된 개선문 글자 수: **{essay_len:,}자** (공백 포함)")
 
