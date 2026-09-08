@@ -26,8 +26,8 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 2. 상단 네비게이션 탭 (학생용 아이디어 코칭 vs 교사용 첨삭·지도실)
-tab_student, tab_teacher = st.tabs(["💡 [학생용] 아이디어 발명 도우미", "🧑‍🏫 [교사용] 발명 글쓰기 첨삭·지도 지원실"])
+# 2. 상단 네비게이션 탭 (학생용 코칭 vs 교사용 첨삭 및 완성 예시)
+tab_student, tab_teacher = st.tabs(["💡 [학생용] 아이디어 발명 도우미", "🧑‍🏫 [교사용] 발명 글쓰기 첨삭 및 개선문 제시"])
 
 # ==========================================
 # TAB 1: 학생용 발명 공모전 아이디어 도우미
@@ -42,7 +42,7 @@ with tab_student:
     with col_grade:
         grade = st.selectbox("학년을 선택하세요", ["초등학생", "중학생"], key="student_grade")
 
-    # 사이드바: 창작 도구함
+    # 사이드바: 창작 지원 도구함
     with st.sidebar:
         st.header("🛠️ 발명 지원 도구함")
         
@@ -172,7 +172,7 @@ with tab_student:
             welcome_msg = f"반가워요! '지구 복구 프로젝트' 만화에서 어떤 환경 문제를 가장 먼저 해결해보고 싶나요?"
         st.session_state.student_messages.append({"role": "assistant", "content": welcome_msg})
 
-    # 상단 도구: 대화 복사 및 기획서 카드 정리 버튼
+    # 상단 대화 복사 및 기획서 카드 정리 버튼
     c_left, c_right = st.columns([1, 1])
     with c_left:
         chat_summary_lines = []
@@ -278,179 +278,107 @@ with tab_student:
 
 
 # ==========================================
-# TAB 2: 교사용 발명 글쓰기 첨삭·지도 지원실
+# TAB 2: 교사용 발명 글쓰기 첨삭 및 개선문 제시 (단일 통합 모드)
 # ==========================================
 with tab_teacher:
-    st.title("🧑‍🏫 발명 글쓰기 수업·첨삭 지원 도구 (교사용)")
-    st.caption("본 도구는 교사 및 성인 지도자가 학생의 초안이나 아이디어를 분석하여 효과적으로 피드백하고 지도할 수 있도록 지원하는 교육용 시스템입니다.")
+    st.title("🧑‍🏫 발명 글쓰기 첨삭 및 완성형 개선문 제시 (교사용)")
+    st.caption("학생의 아이디어 메모나 작성 중인 초안을 입력하면, 교사가 수업 지도 및 비교 설명에 활용할 수 있도록 공모전 기준에 맞춘 **완성형 개선 예시문과 핵심 지도 포인트**를 한 번에 작성해 드립니다.")
 
-    teacher_prompt_system = """
-# 역할
-이 도구는 교사 및 성인 교육자를 위한 「발명 글쓰기 수업·첨삭 지원 도구」이다.
-주 사용자는 교사와 성인 교육자이며, 학습자의 발명 아이디어와 글쓰기 초안을 분석하여 교사가 효과적으로 지도할 수 있도록 돕는다.
-미성년자를 직접 대상으로 하거나 대신 글을 완성해주는 도구가 아니다.
-사용자가 입력하는 학습자의 아이디어, 메모, 초안을 분석하고 그 결과를 교사가 수업·상담·첨삭 지도에 활용할 수 있는 형태로 제공한다.
-모든 결과물은 교사의 검토와 교육적 판단을 전제로 한다.
-
-# 공모전 지도 기준
-주제: 「50년의 기록, 50년의 약속 - 타임머신 발명보고서」
-분량: 띄어쓰기 포함 1,500자 이상 2,000자 미만
-
-# 지도 시 필수 점검 9요소
-1. 발명 배경/동기
-2. 과거 한계 또는 미래 문제
-3. 발명품 이름
-4. 발명품 모습/구성
-5. 작동 원리
-6. 실제 작동 장면
-7. 사람·사회·환경의 변화
-8. 안전성, 한계 또는 예상 문제 고려
-9. 미래/과거와 연결되는 약속이나 메시지
-
-# 심사 관점
-- 내용: 주제 연계성, 독창성, 구체적 문제 정의, 목적/효과 명확성
-- 구성: 자연스러운 흐름, 인과관계, 문단별 명확한 역할, 처음-끝 연결
-- 표현: 간결·명확한 문장, 구체적 장면 묘사, 설명과 서사의 균형
-
-# 과학 원리 지도 원칙
-실제 과학 원리와 이야기 속 상상적 설정을 명확히 구분하여 조언한다.
-(감지 → 판단 → 작동 → 물질/에너지 변화 → 결과 흐름)
-
-# 답변 스타일
-기본적으로 교사에게 전문적으로 보고하는 방식으로 답한다. 막연히 "좋습니다"가 아니라 반드시 구체적 이유와 지도 방법을 함께 서술한다.
-"""
-
-    c_mode, c_grade_t = st.columns([3, 2])
-    with c_mode:
-        teacher_mode = st.selectbox("지도 영역을 선택하세요", [
-            "1. 초안 분석 및 첨삭 모드 (원문 진단, 심사기준 점검, 문단별 지도)",
-            "2. 아이디어 분석 모드 (강점/보완점/독창성/과학원리/발문)",
-            "3. 글 구조 설계 모드 (6문단 뼈대 및 문단별 발문)",
-            "4. 교사용 심층 분석 모드 (12가지 정밀 분석 리포트)",
-            "5. 수업용 참고 예시 생성 (구조 설명용 교사용 샘플)",
-            "6. 최종 점검 모드 (12개 체크리스트 진단)"
-        ], key="teacher_select_mode")
-    with c_grade_t:
-        target_student = st.selectbox("지도 대상 학습자", ["초등학교 5~6학년", "초등학교 3~4학년", "중학생"], key="teacher_target_student")
+    col_target, col_info = st.columns([1, 2])
+    with col_target:
+        target_student = st.selectbox("지도 대상 학년", ["초등학교 5~6학년", "초등학교 3~4학년", "중학생"], key="teacher_grade_unified")
+    with col_info:
+        st.info("💡 공모전 주제: **「50년의 기록, 50년의 약속 - 타임머신 발명보고서」** (띄어쓰기 포함 1,500자 이상 2,000자 미만 기준에 맞춰 개선문이 작성됩니다.)")
 
     st.markdown("---")
 
     col_input, col_result = st.columns([1, 1])
 
     with col_input:
-        st.subheader("📥 학생 아이디어 / 원고 입력")
+        st.subheader("📥 학생 초안 / 아이디어 입력")
         teacher_input_text = st.text_area(
-            "학생의 메모, 초안 또는 아이디어를 붙여넣으세요",
+            "학생이 쓴 글이나 구상한 아이디어를 자유롭게 붙여넣으세요",
             height=450,
-            placeholder="예시:\n[학생 초안 또는 아이디어 메모]\n타임머신을 타고 조선시대로 가서 온돌을 보았다. 미래의 심각한 질병을 해결하기 위해 온돌의 열 순환 원리를 이용한 바이러스 치료 캡슐을 생각했다..."
+            placeholder="예시:\n[학생 초안 또는 아이디어 메모]\n타임머신을 타고 조선시대로 가서 온돌을 보았다. 미래의 심각한 질병을 해결하기 위해 온돌의 열 순환 원리를 이용한 바이러스 치료 캡슐을 생각했다. 온돌 구들장처럼 열이 고르게 퍼져서 사람 몸의 체온을 안전하게 올려 바이러스를 잡는다..."
         )
-        
         char_len = len(teacher_input_text)
-        st.caption(f"현재 입력 글자 수: **{char_len:,}자** (공모전 기준: 1,500자 ~ 2,000자 미만)")
+        st.caption(f"현재 입력 글자 수: **{char_len:,}자**")
 
-        analyze_button = st.button("🚀 교사용 지도안 및 첨삭 리포트 생성", use_container_width=True, type="primary")
+        analyze_button = st.button("✨ 첨삭 및 완성형 개선문 생성하기", use_container_width=True, type="primary")
 
     with col_result:
-        st.subheader("📋 교사용 첨삭·지도 리포트")
+        st.subheader("📋 교사용 첨삭 리포트 & 완성형 개선문")
         result_container = st.empty()
 
         if analyze_button:
             if not teacher_input_text.strip():
                 st.warning("분석할 학생의 글이나 아이디어를 먼저 입력해 주세요!")
             else:
-                with st.spinner("전문 교사용 지도 관점에서 텍스트를 정밀 분석하고 있습니다..."):
-                    # 모드별 세부 지침 생성
-                    if "1. 초안 분석" in teacher_mode:
-                        task_instruction = f"""
-                        학습자 대상: {target_student}
-                        입력된 초안(글자 수: {char_len}자)을 분석하여 아래 6단계 양식으로 교사에게 보고서를 작성하세요:
-                        [1. 전체 진단]: 글의 가장 큰 강점과 가장 중요한 약점 요약
-                        [2. 공모전 요구사항 점검]: 분량, 타임머신 주제, 발명 동기, 문제 상황, 발명품 이름, 작동 원리, 실제 사용 장면, 발명의 효과, 미래 약속/메시지 각 항목을 '충분 / 보완 필요 / 없음' 판정
-                        [3. 심사 관점 분석]: 내용 / 구성 / 표현 각 영역 5점 척도 진단 및 이유 (반드시 '※ 공식 심사점수가 아닌 지도용 진단입니다.' 표기)
-                        [4. 가장 먼저 지도할 3가지]: 문제점 → 이유 → 구체적 지도 방법
-                        [5. 문단별 지도 방향]: 유지할 내용 / 보완할 내용 / 줄여도 되는 내용 / 이동하면 좋은 내용
-                        [6. 교사가 학습자에게 던질 발문]: 학생이 직접 고칠 수 있는 구체적 질문 3~5개
-                        """
-                    elif "2. 아이디어 분석" in teacher_mode:
-                        task_instruction = f"""
-                        학습자 대상: {target_student}
-                        입력된 학생 아이디어를 아래 5가지 항목으로 분석하세요:
-                        [아이디어의 강점]
-                        [보완이 필요한 부분]
-                        [독창성을 높일 수 있는 부분] (아이디어를 임의로 바꾸지 않고 한 단계 발전시키는 제안)
-                        [과학적 원리 점검] (실제 과학 vs 상상적 설정 구분, 감지-판단-작동-변화-결과 적용)
-                        [교사가 던질 질문] (학생 사고 확장 질문 5개)
-                        """
-                    elif "3. 글 구조 설계" in teacher_mode:
-                        task_instruction = f"""
-                        학습자 대상: {target_student}
-                        입력된 내용을 바탕으로 「타임머신 발명보고서」 6문단 글 구조를 짜주세요.
-                        (1문단: 문제/사건 시작, 2문단: 시간 이동과 문제 발견, 3문단: 발명품 착상/이름/모습, 4문단: 과학적 작동 원리, 5문단: 실제 작동 및 해결, 6문단: 달라진 미래와 약속)
-                        각 문단별로 [문단의 역할], [포함하면 좋은 구체적 내용], [부족하기 쉬운 부분], [지도용 질문]을 정리하세요.
-                        """
-                    elif "4. 교사용 심층 분석" in teacher_mode:
-                        task_instruction = f"""
-                        학습자 대상: {target_student}
-                        교사용 심층 분석 12개 항목으로 리포트를 작성하세요:
-                        1. 핵심 아이디어 한 줄 요약
-                        2. 예상 강점
-                        3. 공모전 심사요소별 진단
-                        4. 우수 수상작의 구조와 비교 시 차이점
-                        5. 지도 우선순위
-                        6. 학습자에게 던질 질문
-                        7. 과학적으로 검토할 부분
-                        8. 지나치게 추상적인 표현
-                        9. 학생 수준에 비해 지나치게 어려운 표현
-                        10. 삭제/압축할 부분
-                        11. 구체화/확장할 부분
-                        12. 결말 강화 방법
-                        """
-                    elif "5. 수업용 참고 예시" in teacher_mode:
-                        task_instruction = f"""
-                        학습자 대상: {target_student}
-                        입력된 학생 아이디어를 바탕으로 글의 구성과 표현 방법을 설명하기 위한 [교사용 수업 참고 예시글]을 작성하세요.
-                        - 상단에 반드시 경고문 표기:
-                          [교사용 수업 참고 예시]
-                          이 글은 글의 구조와 표현 방법을 지도하기 위한 참고자료입니다. 실제 공모전 작품은 작성자가 자신의 생각과 표현으로 직접 작성해야 하며, 공모전의 AI 활용 관련 규정을 반드시 확인해야 합니다.
-                        - 분량: 공모전 기준(약 1,600~1,800자 내외)에 맞추어 작성
-                        - 흐름: 문제 상황 → 타임머신 문제 발견 → 발명품 등장 → 구조와 원리 → 실제 작동 → 문제 해결/변화 → 미래 약속
-                        - 하단에 [예시 작성을 위해 보완한 설정] 항목을 달고 추가된 설정을 밝힐 것.
-                        """
-                    else: # 6. 최종 점검
-                        task_instruction = f"""
-                        학습자 대상: {target_student}
-                        공모전 최종 제출 전 체크리스트 12개 항목에 대해 각 항목별 충족 여부(O/X/△)와 이유, 마지막 보완 팁을 제시하세요.
-                        (글자 수 1,500~2,000자, 타임머신 주제 연결, 발명 동기, 구체적 문제, 발명품 이름, 작동 원리, 실제 작동 장면, 변화와 효과, 사회/환경 가치, 미래 약속, 문단 인과관계, 표현의 간결성)
-                        """
+                with st.spinner("학생 아이디어를 존중하여 공모전 규격에 맞는 완성형 개선문과 지도안을 작성하고 있습니다..."):
+                    integrated_prompt = f"""
+                    당신은 대한민국 '제50회 전국 초·중학생 발명글짓기 공모전'의 최고 전문 지도교사입니다.
+                    주제: 「50년의 기록, 50년의 약속 - 타임머신 발명보고서」
+                    지도 대상: {target_student}
 
-                    full_prompt = f"""
-                    {teacher_prompt_system}
-
-                    [지도 요청 과업]
-                    {task_instruction}
-
-                    [학생 입력 자료 원문]
+                    [학생 입력 자료 원문 (글자수: {char_len}자)]
                     {teacher_input_text}
+
+                    [작성 요청사항 - 통합 단일 리포트]
+                    복잡한 체크리스트나 형식적인 나열을 일절 배제하고, 교사가 수업 및 개별 상담에서 학생에게 보여주고 지도할 수 있도록 아래 3개 파트로 구성된 완결된 리포트를 작성하세요.
+                    글자 수 제한으로 인해 문장이 중간에 잘리는 일이 없도록 끝까지 완벽하게 작성해야 합니다.
+
+                    ---
+
+                    ### 1. 학생 아이디어 핵심 진단 및 지도 포인트
+                    - 원문의 강점과 학생의 독창성이 돋보이는 부분
+                    - 글의 완성도를 높이기 위해 보완한 점 (작동 원리 구체화, 실제 작동 장면 보강, 미래 약속 연결 등)
+                    - 교사가 학생에게 질문하며 생각을 이끌어낼 수 있는 지도 발문 2~3가지
+
+                    ---
+
+                    ### 2. [교사용 수업 참고용 완성형 개선문]
+                    * 아래 경고문을 반드시 상단에 명시할 것:
+                    > ⚠️ **[교사용 지도 참고자료]** 본 개선문은 교사가 글의 구조와 표현 방식을 지도하기 위한 예시 자료입니다. 실제 공모전 출품작은 학생이 자신의 표현으로 직접 작성해야 합니다.
+
+                    * 작성 지침:
+                    1. 학생이 구상한 고유 아이디어(발명품, 원리, 배경)를 100% 존중하고 이를 바탕으로 자연스럽게 살을 붙이세요.
+                    2. 공모전 규격인 **띄어쓰기 포함 약 1,600자~1,850자** 분량의 완결된 보고서 형식 수필로 작성하세요.
+                    3. 글의 흐름:
+                       - 1문단: 일상 속 문제의 발견 및 타임머신 탑승 계기
+                       - 2문단: 시간 이동(과거 또는 미래)을 통해 마주한 구체적 문제 상황
+                       - 3문단: 새로운 발명품의 착상, 명칭, 외형 및 구조
+                       - 4문단: 과학적 작동 원리 (감지 → 판단 → 작동 → 변화의 인과관계)
+                       - 5문단: 발명품이 현장에서 실제로 가동되는 생생한 작동 장면과 위기 해결
+                       - 6문단: 발명으로 달라진 사회의 모습과 50년의 약속/결말 메시지
+                    4. 문장이 중간에 끊기지 않도록 끝까지 완벽한 마침표로 글을 마무리하세요.
+
+                    ---
+
+                    ### 3. 개선문에 추가·보완된 설정 설명
+                    - 학생 원문에 없었으나 공모전 심사 기준(과학 원리, 안전성, 사회적 가치 등)을 충족하기 위해 개선문에 새롭게 보완한 과학적/상황적 설정을 2~3가지로 간략히 밝혀주세요.
                     """
 
                     try:
                         resp = client.models.generate_content(
                             model="gemini-3.6-flash",
-                            contents=[types.Content(role="user", parts=[types.Part.from_text(text=full_prompt)])],
-                            config=types.GenerateContentConfig(temperature=0.4, max_output_tokens=3000)
+                            contents=[types.Content(role="user", parts=[types.Part.from_text(text=integrated_prompt)])],
+                            config=types.GenerateContentConfig(
+                                temperature=0.5,
+                                max_output_tokens=4000  # 1,800자 개선문과 피드백이 온전히 나오도록 토큰을 최대치로 확대
+                            )
                         )
-                        st.session_state.teacher_report = resp.text
+                        st.session_state.teacher_integrated_report = resp.text
                     except Exception as e:
-                        st.error(f"분석 중 오류가 발생했습니다: {e}")
+                        st.error(f"생성 중 오류가 발생했습니다: {e}")
 
-        if "teacher_report" in st.session_state and st.session_state.teacher_report:
-            result_container.markdown(st.session_state.teacher_report)
+        if "teacher_integrated_report" in st.session_state and st.session_state.teacher_integrated_report:
+            result_container.markdown(st.session_state.teacher_integrated_report)
             
             st.download_button(
-                label="📥 교사용 지도 리포트 다운로드 (.txt)",
-                data=st.session_state.teacher_report,
-                file_name="발명글쓰기_지도첨삭리포트.txt",
+                label="💾 완성형 첨삭 리포트 다운로드 (.txt)",
+                data=st.session_state.teacher_integrated_report,
+                file_name="발명글짓기_완성형_개선문_지도안.txt",
                 mime="text/plain",
                 use_container_width=True,
-                key="btn_download_teacher_report"
+                key="btn_download_integrated_report"
             )
