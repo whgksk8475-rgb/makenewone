@@ -240,7 +240,7 @@ with tab_student:
                         summary_resp = client.models.generate_content(
                             model="gemini-3.6-flash",
                             contents=[types.Content(role="user", parts=[types.Part.from_text(text=full_chat_text + "\n\n" + summary_prompt)])],
-                            config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=1000)
+                            config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=2000)
                         )
                         st.session_state.summary_card = summary_resp.text
                     except Exception as e:
@@ -280,7 +280,7 @@ with tab_student:
                             config=types.GenerateContentConfig(
                                 system_instruction=student_system_instruction,
                                 temperature=0.7,
-                                max_output_tokens=2500,
+                                max_output_tokens=8192,
                             )
                         )
                         st.write("💡 생각을 넓혀줄 질문과 피드백을 다듬는 중...")
@@ -306,17 +306,17 @@ with tab_student:
 
 
 # ==========================================
-# TAB 2: 교사용 발명 글쓰기 완성형 개선문 생성
+# TAB 2: 교사용 발명 글쓰기 완성형 개선문 생성 (리밋 해제)
 # ==========================================
 with tab_teacher:
     st.title("🧑‍🏫 발명 글쓰기 완성형 개선문 생성 (교사용)")
-    st.caption("학생의 아이디어 메모나 초안을 입력하면, 교사가 수업 및 지도용으로 활용할 수 있도록 **어울리는 추천 제목 4가지와 공모전 규격 완성형 개선문 본문**을 함께 작성해 드립니다.")
+    st.caption("학생의 아이디어 메모나 초안을 입력하면, 교사가 수업 및 지도용으로 활용할 수 있도록 **어울리는 추천 제목 4가지와 공모전 규격 완성형 개선문 본문**을 끝까지 완결하여 작성해 드립니다.")
 
     col_target, col_info = st.columns([1, 2])
     with col_target:
         target_student = st.selectbox("지도 대상 학년", ["초등학교 5~6학년", "초등학교 3~4학년", "중학생"], key="teacher_grade_unified")
     with col_info:
-        st.info("💡 공모전 주제: **「50년의 기록, 50년의 약속 - 타임머신 발명보고서」** (띄어쓰기 포함 1,500자 이상 2,000자 미만 규격에 맞추어 작성됩니다.)")
+        st.info("💡 공모전 주제: **「50년의 기록, 50년의 약속 - 타임머신 발명보고서」** (띄어쓰기 포함 1,500자 이상 2,000자 미만 규격에 맞추어 결말까지 완결됩니다.)")
 
     st.markdown("---")
 
@@ -342,7 +342,7 @@ with tab_teacher:
             if not teacher_input_text.strip():
                 st.warning("학생의 글이나 아이디어를 먼저 입력해 주세요!")
             else:
-                with st.spinner("어울리는 제목과 공모전 규격(1,600~1,850자) 완성형 개선문을 작성하고 있습니다..."):
+                with st.spinner("중간 끊김 없이 완벽한 결말까지 작성하고 있습니다... (약 15~25초 소요)"):
                     pure_essay_prompt = f"""
 당신은 대한민국 '제50회 전국 초·중학생 발명글짓기 공모전'의 전문 지도교사입니다.
 주제: 「50년의 기록, 50년의 약속 - 타임머신 발명보고서」
@@ -351,33 +351,32 @@ with tab_teacher:
 [학생 입력 자료]
 {teacher_input_text}
 
-[작성 지침]
-- 복잡한 분석 보고서나 장황한 피드백은 작성하지 마세요.
-- 반드시 아래 [출력 양식] 순서대로 명확히 출력하세요.
+[작성 지침 - 절대 준수]
+1. 내부 사고(Thinking)나 사전 분석 과정을 길게 늘이지 말고, 즉시 글 작성을 시작하세요.
+2. 어떠한 분석 리포트나 평가 점수도 적지 마세요.
+3. 아래 [출력 양식] 순서대로 즉시 출력하되, **반드시 6문단 결말(50년의 약속)까지 완벽하게 완결**하여 마침표를 찍으세요. 절대 중간에 멈추거나 잘려서는 안 됩니다.
 
 [출력 양식]
 > ⚠️ **[교사용 지도 참고자료]** 본 글은 글의 구조와 표현 방법을 지도하기 위한 예시 자료입니다. 실제 공모전 출품작은 학생이 자신의 생각과 표현으로 직접 작성해야 합니다.
 
 ### 🏷️ 공모전 추천 제목 (택 1)
-- **[감성·스토리형]**: (예: 시공간을 넘어온 온돌의 온기, 미래를 치유하다)
-- **[발명품 중심형]**: (예: 2076년 생명을 구하는 나노 구들장 캡슐 보고서)
-- **[메시지·약속형]**: (예: 과거 500년의 지혜로 지켜낸 미래 50년의 약속)
-- **[참신·호기심형]**: (학생 글에 어울리는 기발하고 참신한 제목)
+- **[감성·스토리형]**: (제목)
+- **[발명품 중심형]**: (제목)
+- **[메시지·약속형]**: (제목)
+- **[참신·호기심형]**: (제목)
 
 ---
 
 ### 📝 수업 참고용 완성형 개선문 본문
-(학생이 구상한 발명 아이디어와 설정을 충실히 계승하고 발전시켜, 공모전 규격인 **공백 포함 약 1,600자~1,850자** 내외의 완결된 수필/보고서 형식으로 작성)
+(학생의 발명 아이디어와 과학 설정을 계승하여, 공백 포함 1,600자~1,850자 범위의 완결된 수필/보고서로 작성)
 
-* 개선문 필수 흐름:
-1. 일상 속 문제의 발견 및 타임머신 탑승 계기
-2. 시간 이동을 통해 마주한 구체적인 문제 상황
-3. 새로운 발명품의 착상, 독창적인 이름, 외형 및 구성
-4. 과학적 작동 원리 (감지 → 판단 → 작동 → 변화의 인과관계)
-5. 발명품이 실제로 작동하는 생생한 장면과 위기 극복 과정
-6. 발명으로 달라진 사회의 모습과 미래를 향한 50년의 약속
-
-* 문장이 중간에 잘리지 않도록 끝까지 완벽한 마침표로 마무리할 것.
+* 전개 흐름 (각 문단을 충실히 전개할 것):
+- 1문단: 일상 속 문제의 발견 및 타임머신 탑승 계기
+- 2문단: 시간 이동을 통해 마주한 구체적인 문제 상황
+- 3문단: 새로운 발명품의 착상, 독창적인 이름, 외형 및 구성
+- 4문단: 과학적 작동 원리 (감지 → 판단 → 작동 → 변화의 인과관계)
+- 5문단: 발명품이 실제로 작동하는 생생한 장면과 위기 극복 과정
+- 6문단: 발명으로 달라진 사회의 모습과 미래를 향한 50년의 약속 및 완벽한 결말
 """
 
                     try:
@@ -385,8 +384,8 @@ with tab_teacher:
                             model="gemini-3.6-flash",
                             contents=[types.Content(role="user", parts=[types.Part.from_text(text=pure_essay_prompt)])],
                             config=types.GenerateContentConfig(
-                                temperature=0.6,
-                                max_output_tokens=4000
+                                temperature=0.5,
+                                max_output_tokens=8192  # 토큰 제한을 최대 한도(8192)로 완전 해제
                             )
                         )
                         st.session_state.teacher_pure_essay = resp.text
