@@ -26,8 +26,8 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 2. 상단 네비게이션 탭 (학생용 코칭 vs 교사용 첨삭 및 완성 예시)
-tab_student, tab_teacher = st.tabs(["💡 [학생용] 아이디어 발명 도우미", "🧑‍🏫 [교사용] 발명 글쓰기 첨삭 및 개선문 제시"])
+# 2. 상단 네비게이션 탭 (학생용 코칭 vs 교사용 완성형 개선문)
+tab_student, tab_teacher = st.tabs(["💡 [학생용] 아이디어 발명 도우미", "🧑‍🏫 [교사용] 발명 글쓰기 완성형 개선문 생성"])
 
 # ==========================================
 # TAB 1: 학생용 발명 공모전 아이디어 도우미
@@ -278,17 +278,17 @@ with tab_student:
 
 
 # ==========================================
-# TAB 2: 교사용 발명 글쓰기 첨삭 및 개선문 제시 (단일 통합 모드)
+# TAB 2: 교사용 발명 글쓰기 완성형 개선문 생성 (순수 개선문 본문 전용)
 # ==========================================
 with tab_teacher:
-    st.title("🧑‍🏫 발명 글쓰기 첨삭 및 완성형 개선문 제시 (교사용)")
-    st.caption("학생의 아이디어 메모나 작성 중인 초안을 입력하면, 교사가 수업 지도 및 비교 설명에 활용할 수 있도록 공모전 기준에 맞춘 **완성형 개선 예시문과 핵심 지도 포인트**를 한 번에 작성해 드립니다.")
+    st.title("🧑‍🏫 발명 글쓰기 완성형 개선문 생성 (교사용)")
+    st.caption("학생의 아이디어 메모나 초안을 입력하면, 교사가 수업 및 지도용으로 활용할 수 있도록 공모전 규격에 맞춘 **완성형 개선 예시문 본문만** 즉시 작성해 드립니다.")
 
     col_target, col_info = st.columns([1, 2])
     with col_target:
         target_student = st.selectbox("지도 대상 학년", ["초등학교 5~6학년", "초등학교 3~4학년", "중학생"], key="teacher_grade_unified")
     with col_info:
-        st.info("💡 공모전 주제: **「50년의 기록, 50년의 약속 - 타임머신 발명보고서」** (띄어쓰기 포함 1,500자 이상 2,000자 미만 기준에 맞춰 개선문이 작성됩니다.)")
+        st.info("💡 공모전 주제: **「50년의 기록, 50년의 약속 - 타임머신 발명보고서」** (띄어쓰기 포함 1,500자 이상 2,000자 미만 규격에 맞추어 작성됩니다.)")
 
     st.markdown("---")
 
@@ -304,81 +304,69 @@ with tab_teacher:
         char_len = len(teacher_input_text)
         st.caption(f"현재 입력 글자 수: **{char_len:,}자**")
 
-        analyze_button = st.button("✨ 첨삭 및 완성형 개선문 생성하기", use_container_width=True, type="primary")
+        analyze_button = st.button("✨ 완성형 개선문 생성하기", use_container_width=True, type="primary")
 
     with col_result:
-        st.subheader("📋 교사용 첨삭 리포트 & 완성형 개선문")
+        st.subheader("📄 수업 참고용 완성형 개선문")
         result_container = st.empty()
 
         if analyze_button:
             if not teacher_input_text.strip():
-                st.warning("분석할 학생의 글이나 아이디어를 먼저 입력해 주세요!")
+                st.warning("학생의 글이나 아이디어를 먼저 입력해 주세요!")
             else:
-                with st.spinner("학생 아이디어를 존중하여 공모전 규격에 맞는 완성형 개선문과 지도안을 작성하고 있습니다..."):
-                    integrated_prompt = f"""
-                    당신은 대한민국 '제50회 전국 초·중학생 발명글짓기 공모전'의 최고 전문 지도교사입니다.
-                    주제: 「50년의 기록, 50년의 약속 - 타임머신 발명보고서」
-                    지도 대상: {target_student}
+                with st.spinner("공모전 규격(1,600~1,850자)에 맞는 완결된 개선문 본문을 작성하고 있습니다..."):
+                    pure_essay_prompt = f"""
+당신은 대한민국 '제50회 전국 초·중학생 발명글짓기 공모전'의 전문 지도교사입니다.
+주제: 「50년의 기록, 50년의 약속 - 타임머신 발명보고서」
+지도 대상 수준: {target_student}
 
-                    [학생 입력 자료 원문 (글자수: {char_len}자)]
-                    {teacher_input_text}
+[학생 입력 자료]
+{teacher_input_text}
 
-                    [작성 요청사항 - 통합 단일 리포트]
-                    복잡한 체크리스트나 형식적인 나열을 일절 배제하고, 교사가 수업 및 개별 상담에서 학생에게 보여주고 지도할 수 있도록 아래 3개 파트로 구성된 완결된 리포트를 작성하세요.
-                    글자 수 제한으로 인해 문장이 중간에 잘리는 일이 없도록 끝까지 완벽하게 작성해야 합니다.
+[작성 지침 - 중요]
+- 어떠한 분석 보고서, 피드백, 해설, 목차, 사족도 절대 작성하지 마세요.
+- 오직 아래 제시된 **[수업 참고용 완성형 개선문] 본문만** 즉시 출력하세요.
+- 첫 줄에 다음 안내문구 블록을 반드시 넣으세요:
+> ⚠️ **[교사용 지도 참고자료]** 본 글은 글의 구조와 표현 방법을 지도하기 위한 예시 자료입니다. 실제 공모전 출품작은 학생이 자신의 생각과 표현으로 직접 작성해야 합니다.
 
-                    ---
-
-                    ### 1. 학생 아이디어 핵심 진단 및 지도 포인트
-                    - 원문의 강점과 학생의 독창성이 돋보이는 부분
-                    - 글의 완성도를 높이기 위해 보완한 점 (작동 원리 구체화, 실제 작동 장면 보강, 미래 약속 연결 등)
-                    - 교사가 학생에게 질문하며 생각을 이끌어낼 수 있는 지도 발문 2~3가지
-
-                    ---
-
-                    ### 2. [교사용 수업 참고용 완성형 개선문]
-                    * 아래 경고문을 반드시 상단에 명시할 것:
-                    > ⚠️ **[교사용 지도 참고자료]** 본 개선문은 교사가 글의 구조와 표현 방식을 지도하기 위한 예시 자료입니다. 실제 공모전 출품작은 학생이 자신의 표현으로 직접 작성해야 합니다.
-
-                    * 작성 지침:
-                    1. 학생이 구상한 고유 아이디어(발명품, 원리, 배경)를 100% 존중하고 이를 바탕으로 자연스럽게 살을 붙이세요.
-                    2. 공모전 규격인 **띄어쓰기 포함 약 1,600자~1,850자** 분량의 완결된 보고서 형식 수필로 작성하세요.
-                    3. 글의 흐름:
-                       - 1문단: 일상 속 문제의 발견 및 타임머신 탑승 계기
-                       - 2문단: 시간 이동(과거 또는 미래)을 통해 마주한 구체적 문제 상황
-                       - 3문단: 새로운 발명품의 착상, 명칭, 외형 및 구조
-                       - 4문단: 과학적 작동 원리 (감지 → 판단 → 작동 → 변화의 인과관계)
-                       - 5문단: 발명품이 현장에서 실제로 가동되는 생생한 작동 장면과 위기 해결
-                       - 6문단: 발명으로 달라진 사회의 모습과 50년의 약속/결말 메시지
-                    4. 문장이 중간에 끊기지 않도록 끝까지 완벽한 마침표로 글을 마무리하세요.
-
-                    ---
-
-                    ### 3. 개선문에 추가·보완된 설정 설명
-                    - 학생 원문에 없었으나 공모전 심사 기준(과학 원리, 안전성, 사회적 가치 등)을 충족하기 위해 개선문에 새롭게 보완한 과학적/상황적 설정을 2~3가지로 간략히 밝혀주세요.
-                    """
+- 본문 작성 세부 기준:
+  1. 학생이 구상한 발명 아이디어와 설정을 충실히 계승하여 발전시킬 것.
+  2. 공모전 제출 규격에 맞게 **공백 포함 약 1,600자~1,850자** 내외의 완결된 수필/보고서 형식으로 쓸 것.
+  3. 흐름:
+     - 1문단: 일상 속 문제의 발견 및 타임머신 탑승 계기
+     - 2문단: 시간 이동을 통해 마주한 구체적 문제 상황
+     - 3문단: 새로운 발명품의 착상, 독창적인 이름, 외형 및 구조
+     - 4문단: 과학적 작동 원리 (감지 → 판단 → 작동 → 변화의 인과관계)
+     - 5문단: 발명품이 실제로 작동하는 생생한 장면과 위기 극복 과정
+     - 6문단: 발명으로 달라진 사회의 모습과 미래를 향한 50년의 약속
+  4. 문장이 중간에 잘리지 않도록 끝까지 완벽한 마침표로 마무리할 것.
+"""
 
                     try:
                         resp = client.models.generate_content(
                             model="gemini-3.6-flash",
-                            contents=[types.Content(role="user", parts=[types.Part.from_text(text=integrated_prompt)])],
+                            contents=[types.Content(role="user", parts=[types.Part.from_text(text=pure_essay_prompt)])],
                             config=types.GenerateContentConfig(
-                                temperature=0.5,
-                                max_output_tokens=4000  # 1,800자 개선문과 피드백이 온전히 나오도록 토큰을 최대치로 확대
+                                temperature=0.6,
+                                max_output_tokens=4000
                             )
                         )
-                        st.session_state.teacher_integrated_report = resp.text
+                        st.session_state.teacher_pure_essay = resp.text
                     except Exception as e:
                         st.error(f"생성 중 오류가 발생했습니다: {e}")
 
-        if "teacher_integrated_report" in st.session_state and st.session_state.teacher_integrated_report:
-            result_container.markdown(st.session_state.teacher_integrated_report)
+        if "teacher_pure_essay" in st.session_state and st.session_state.teacher_pure_essay:
+            result_container.markdown(st.session_state.teacher_pure_essay)
             
+            # 생성된 개선문의 실제 글자 수 실시간 집계
+            essay_len = len(st.session_state.teacher_pure_essay)
+            st.caption(f"📊 생성된 개선문 글자 수: **{essay_len:,}자** (공백 포함)")
+
             st.download_button(
-                label="💾 완성형 첨삭 리포트 다운로드 (.txt)",
-                data=st.session_state.teacher_integrated_report,
-                file_name="발명글짓기_완성형_개선문_지도안.txt",
+                label="💾 완성형 개선문 텍스트 다운로드 (.txt)",
+                data=st.session_state.teacher_pure_essay,
+                file_name="타임머신_발명보고서_수업참고예시.txt",
                 mime="text/plain",
                 use_container_width=True,
-                key="btn_download_integrated_report"
+                key="btn_download_pure_essay"
             )
